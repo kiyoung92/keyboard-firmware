@@ -50,6 +50,37 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     )
 };
 
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    switch (keycode) {
+        case OS_SW_WINLOCK:
+            if (record->event.pressed) {
+                win_lock_timer = timer_read32();
+                is_win_lock_held = true;
+            } else {
+                if (is_win_lock_held) {
+                    is_win_lock_held = false;
+
+                    if (get_highest_layer(default_layer_state) == _WIN) {
+                        default_layer_set(1UL << _MAC);
+                    } else {
+                        default_layer_set(1UL << _WIN);
+                    }
+
+                    eeconfig_update_default_layer(default_layer_state);
+                }
+            }
+            return false;
+
+        case KC_LGUI:
+        case KC_RGUI:
+            if (win_lock_active && get_highest_layer(default_layer_state) == _WIN) {
+                if (record->event.pressed) return false;
+            }
+            return true;
+    }
+    return true;
+}
+
 void matrix_scan_user(void) {
     if (is_win_lock_held && timer_elapsed32(win_lock_timer) >= 3000) {
         is_win_lock_held = false;
